@@ -1,27 +1,41 @@
 # code by Tae Hwan Jung @graykode
 import tensorflow as tf
 import numpy as np
+import os
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
+'''
+tf.reset_default_graph函数用于清除默认图形堆栈并重置全局默认图形. 
+默认图形是当前线程的一个属性.该tf.reset_default_graph函数只适用于当前线程.
+当一个tf.Session或者tf.InteractiveSession激活时调用这个函数会导致未定义的行为.
+调用此函数后使用任何以前创建的tf.Operation或tf.Tensor对象将导致未定义的行为.
+'''
 tf.reset_default_graph()
 
 sentences = [ "i like dog", "i love coffee", "i hate milk"]
 
-word_list = " ".join(sentences).split()
-word_list = list(set(word_list))
-word_dict = {w: i for i, w in enumerate(word_list)}
-number_dict = {i: w for i, w in enumerate(word_list)}
+'''
+以下四步是制作词典
+'''
+word_list = " ".join(sentences).split() # word segmentation
+word_list = list(set(word_list)) # remove repetitive elements
+word_dict = {w: i for i, w in enumerate(word_list)} # pairs-word:index
+number_dict = {i: w for i, w in enumerate(word_list)} # pairs-index: word
 n_class = len(word_dict) # number of Vocabulary
 
 # NNLM Parameter
 n_step = 2 # number of steps ['i like', 'i love', 'i hate']
 n_hidden = 2 # number of hidden units
 
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 def make_batch(sentences):
     input_batch = []
     target_batch = []
 
     for sen in sentences:
-        word = sen.split()
+        word = sen.split() 
         input = [word_dict[n] for n in word[:-1]]
         target = word_dict[word[-1]]
 
@@ -31,6 +45,16 @@ def make_batch(sentences):
     return input_batch, target_batch
 
 # Model
+'''
+建模分以下步骤：
+1.设置输入输出的占位符
+2.随机正态分布初始化网络参数
+3.设置网络结构：输入-全连接层（tanh）-输出层（softmax）
+4.设置loss（交叉熵）和优化器
+5.训练（5000轮）
+6.预测
+7.测试
+'''
 X = tf.placeholder(tf.float32, [None, n_step, n_class]) # [batch_size, number of steps, number of Vocabulary]
 Y = tf.placeholder(tf.float32, [None, n_class])
 
