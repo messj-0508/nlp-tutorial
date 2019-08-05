@@ -1,10 +1,12 @@
 '''
   code by Tae Hwan Jung(Jeff Jung) @graykode
+  负采样的收敛速度相对较差许多，但计算速度快
 '''
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
+# 重置默认图
 tf.reset_default_graph()
 
 # 3 Words Sentence
@@ -14,15 +16,27 @@ sentences = [ "i like dog", "i like cat", "i like animal",
               "apple i movie book music like", "cat dog hate", "cat dog like"]
 
 word_sequence = " ".join(sentences).split()
+'''
+制作词典
+'''
 word_list = " ".join(sentences).split()
 word_list = list(set(word_list))
 word_dict = {w: i for i, w in enumerate(word_list)}
 
 # Word2Vec Parameter
+'''
+设置超参数：
+1. 批训练样例数
+2. embedding维度
+4. 词典大小
+'''
 batch_size = 20
 embedding_size = 2 # To show 2 dim embedding graph
 voc_size = len(word_list)
 
+'''
+随机批训练数据集制作
+'''
 def random_batch(data, size):
     random_inputs = []
     random_labels = []
@@ -44,19 +58,34 @@ for i in range(1, len(word_sequence) - 1):
         skip_grams.append([target, w])
 
 # Model
+'''
+建模分以下步骤：
+1.设置输入输出的占位符
+2.随机正态分布初始化网络参数
+3.设置网络
+4.设置loss（交叉熵）和优化器
+5.训练（5000轮）
+6.画图展示
+'''
+
+## 1
 inputs = tf.placeholder(tf.float32, shape=[None, voc_size])
 labels = tf.placeholder(tf.float32, shape=[None, voc_size])
 
+## 2
 # W and WT is not Traspose relationship
 W = tf.Variable(tf.random_uniform([voc_size, embedding_size], -1.0, 1.0))
 WT = tf.Variable(tf.random_uniform([embedding_size, voc_size], -1.0, 1.0))
 
+## 3
 hidden_layer = tf.matmul(inputs, W) # [batch_size, embedding_size]
 output_layer = tf.matmul(hidden_layer, WT) # [batch_size, voc_size]
 
+## 4
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=output_layer, labels=labels))
 optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
 
+## 5
 with tf.Session() as sess:
     init = tf.global_variables_initializer()
     sess.run(init)
@@ -70,6 +99,7 @@ with tf.Session() as sess:
 
         trained_embeddings = W.eval()
 
+## 6
 for i, label in enumerate(word_list):
     x, y = trained_embeddings[i]
     plt.scatter(x, y)

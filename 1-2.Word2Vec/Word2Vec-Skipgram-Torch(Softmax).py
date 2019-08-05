@@ -63,28 +63,38 @@ class Word2Vec(nn.Module):
 
 model = Word2Vec()
 
+'''
+设置loss（交叉熵）和优化器(Adam)
+'''
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 # Training
 for epoch in range(5000):
 
+    # 获取输入
     input_batch, target_batch = random_batch(skip_grams, batch_size)
-
+    
+    # 转换类型
     input_batch = Variable(torch.Tensor(input_batch))
     target_batch = Variable(torch.LongTensor(target_batch))
 
+    # 初始化参数
     optimizer.zero_grad()
+    # 设置网络
     output = model(input_batch)
-
+    
+    # 计算loss并输出（可选）
     # output : [batch_size, voc_size], target_batch : [batch_size] (LongTensor, not one-hot)
     loss = criterion(output, target_batch)
     if (epoch + 1)%1000 == 0:
         print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
-
+    # 计算梯度
     loss.backward()
+    # 更新参数
     optimizer.step()
 
+## 画图
 for i, label in enumerate(word_list):
     W, WT = model.parameters()
     x,y = float(W[i][0]), float(W[i][1])
