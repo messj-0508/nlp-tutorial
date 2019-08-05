@@ -1,1 +1,4 @@
 .idea
+1-3.FastText/*.zip
+1-3.FastText/fastText-0*
+*/.ipynb_checkpoints
