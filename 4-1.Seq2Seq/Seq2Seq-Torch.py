@@ -4,22 +4,36 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+# 设置网络参数属性的别名
 dtype = torch.FloatTensor
 # S: Symbol that shows starting of decoding input
 # E: Symbol that shows starting of decoding output
 # P: Symbol that will fill in blank sequence if current batch data size is short than time steps
 
+'''
+制作数据和词典，该数据集是单词级的
+'''
 char_arr = [c for c in 'SEPabcdefghijklmnopqrstuvwxyz']
 num_dic = {n: i for i, n in enumerate(char_arr)}
 
 seq_data = [['man', 'women'], ['black', 'white'], ['king', 'queen'], ['girl', 'boy'], ['up', 'down'], ['high', 'low']]
 
 # Seq2Seq Parameter
+'''
+设置超参数：
+1. 输入的长度
+2. 每个cell包含的神经单元数
+3. 字典大小
+4. 批样例数
+'''
 n_step = 5
 n_hidden = 128
 n_class = len(num_dic)
 batch_size = len(seq_data)
 
+'''
+制作数据集：字母 → index编号 → onehot向量,预测下个词
+'''
 def make_batch(seq_data):
     input_batch, output_batch, target_batch = [], [], []
 
@@ -39,6 +53,15 @@ def make_batch(seq_data):
     return Variable(torch.Tensor(input_batch)), Variable(torch.Tensor(output_batch)), Variable(torch.LongTensor(target_batch))
 
 # Model
+'''
+建模：
+1.定义Seq2Seq类，包括网络参数，和前向传播：输入→encoder-decoder→输出层（softmax）
+2.设置loss（交叉熵）和优化器(Adam)
+3.训练（10000轮）
+4.测试
+'''
+
+## 1
 class Seq2Seq(nn.Module):
     def __init__(self):
         super(Seq2Seq, self).__init__()
@@ -63,9 +86,12 @@ class Seq2Seq(nn.Module):
 input_batch, output_batch, target_batch = make_batch(seq_data)
 
 model = Seq2Seq()
+
+## 2
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
+## 3
 for epoch in range(5000):
     # make hidden shape [num_layers * num_directions, batch_size, n_hidden]
     hidden = Variable(torch.zeros(1, batch_size, n_hidden))
@@ -86,7 +112,7 @@ for epoch in range(5000):
     loss.backward()
     optimizer.step()
 
-
+## 4
 # Test
 def translate(word):
     input_batch, output_batch, _ = make_batch([[word, 'P' * len(word)]])

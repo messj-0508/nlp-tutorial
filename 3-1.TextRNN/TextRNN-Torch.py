@@ -7,21 +7,33 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
 
+# 设置网络参数属性的别名
 dtype = torch.FloatTensor
 
+'''
+制作数据和词典
+'''
 sentences = [ "i like dog", "i love coffee", "i hate milk"]
-
 word_list = " ".join(sentences).split()
 word_list = list(set(word_list))
 word_dict = {w: i for i, w in enumerate(word_list)}
 number_dict = {i: w for i, w in enumerate(word_list)}
 n_class = len(word_dict)
 
+'''
+设置超参数：
+1. 批输入的个数
+2. 输入的长度
+3. 每个cell包含的神经单元
+'''
 # TextRNN Parameter
 batch_size = len(sentences)
 n_step = 2 # number of cells(= number of Step)
 n_hidden = 5 # number of hidden units in one cell
 
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 def make_batch(sentences):
     input_batch = []
     target_batch = []
@@ -37,10 +49,24 @@ def make_batch(sentences):
     return input_batch, target_batch
 
 # to Torch.Tensor
+
+'''
+转换数据类型
+'''
 input_batch, target_batch = make_batch(sentences)
 input_batch = Variable(torch.Tensor(input_batch))
 target_batch = Variable(torch.LongTensor(target_batch))
 
+
+'''
+建模：
+1.定义TextRNN类，包括网络参数，和前向传播：输入-RNN-输出层（softmax）
+2.设置loss（交叉熵）和优化器(Adam)
+3.训练（5000轮）
+4.测试
+'''
+
+## 1
 class TextRNN(nn.Module):
     def __init__(self):
         super(TextRNN, self).__init__()
@@ -60,9 +86,11 @@ class TextRNN(nn.Module):
 
 model = TextRNN()
 
+## 2
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+## 3
 # Training
 for epoch in range(5000):
     optimizer.zero_grad()
@@ -82,6 +110,7 @@ for epoch in range(5000):
 
 input = [sen.split()[:2] for sen in sentences]
 
+## 4
 # Predict
 hidden = Variable(torch.zeros(1, batch_size, n_hidden))
 predict = model(hidden, input_batch).data.max(1, keepdim=True)[1]

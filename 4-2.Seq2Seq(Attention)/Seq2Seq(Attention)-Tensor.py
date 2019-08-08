@@ -1,24 +1,39 @@
 # code by Tae Hwan Jung(Jeff Jung) @graykode
+# Simple Translate
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
+# 重置默认图
 tf.reset_default_graph()
 # S: Symbol that shows starting of decoding input
 # E: Symbol that shows starting of decoding output
 # P: Symbol that will fill in blank sequence if current batch data size is short than time steps
+
+'''
+制作数据和词典，该数据集是单词级的
+'''
 sentences = ['ich mochte ein bier P', 'S i want a beer', 'i want a beer E']
 
 word_list = " ".join(sentences).split()
+print(word_list)
 word_list = list(set(word_list))
 word_dict = {w: i for i, w in enumerate(word_list)}
 number_dict = {i: w for i, w in enumerate(word_list)}
 n_class = len(word_dict)  # vocab list
 
 # Parameter
+'''
+设置超参数：
+1. 输入的长度
+2. 每个cell包含的神经单元数
+'''
 n_step = 5  # maxium number of words in one sentence(=number of time steps)
 n_hidden = 128
 
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 def make_batch(sentences):
     input_batch = [np.eye(n_class)[[word_dict[n] for n in sentences[0].split()]]]
     output_batch = [np.eye(n_class)[[word_dict[n] for n in sentences[1].split()]]]
@@ -26,9 +41,20 @@ def make_batch(sentences):
     return input_batch, output_batch, target_batch
 
 # Model
+'''
+建模分以下步骤：
+1.设置输入输出的占位符
+2.设置网络结构：输入→encoder-decoder→输出层（softmax）
+3.设置loss（交叉熵）和优化器（Adam）
+4.训练（10000轮）
+5.预测
+'''
+
+## 1
 enc_inputs = tf.placeholder(tf.float32, [None, None, n_class])  # [batch_size, n_step, n_class]
 dec_inputs = tf.placeholder(tf.float32, [None, None, n_class])  # [batch_size, n_step, n_class]
 targets = tf.placeholder(tf.int64, [1, n_step])  # [batch_size, n_step], not one-hot
+
 
 # Linear for attention
 attn = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
