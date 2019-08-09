@@ -7,8 +7,12 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+# 设置网络参数属性的别名
 dtype = torch.FloatTensor
 
+'''
+制作数据和词典，该数据集是单词级的
+'''
 # S: Symbol that shows starting of decoding input
 # E: Symbol that shows starting of decoding output
 # P: Symbol that will fill in blank sequence if current batch data size is short than time steps
@@ -21,8 +25,16 @@ number_dict = {i: w for i, w in enumerate(word_list)}
 n_class = len(word_dict)  # vocab list
 
 # Parameter
+'''
+设置超参数：
+1. 每个cell包含的神经单元数
+'''
 n_hidden = 128
 
+
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 def make_batch(sentences):
     input_batch = [np.eye(n_class)[[word_dict[n] for n in sentences[0].split()]]]
     output_batch = [np.eye(n_class)[[word_dict[n] for n in sentences[1].split()]]]
@@ -31,6 +43,17 @@ def make_batch(sentences):
     # make tensor
     return Variable(torch.Tensor(input_batch)), Variable(torch.Tensor(output_batch)), Variable(torch.LongTensor(target_batch))
 
+
+# Model
+'''
+建模：
+1.定义Attention类，包括网络参数，和前向传播（以及获取attn-weight和attn-scores）
+2.设置loss（交叉熵）和优化器(Adam)
+3.训练（10000轮）
+4.测试
+'''
+
+## 1
 class Attention(nn.Module):
     def __init__(self):
         super(Attention, self).__init__()
@@ -90,9 +113,12 @@ input_batch, output_batch, target_batch = make_batch(sentences)
 hidden = Variable(torch.zeros(1, 1, n_hidden))
 
 model = Attention()
+
+## 2
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
+## 3
 # Train
 for epoch in range(2000):
     optimizer.zero_grad()
@@ -105,6 +131,7 @@ for epoch in range(2000):
     loss.backward()
     optimizer.step()
 
+## 4
 # Test
 test_batch = [np.eye(n_class)[[word_dict[n] for n in 'SPPPP']]]
 test_batch = Variable(torch.Tensor(test_batch))

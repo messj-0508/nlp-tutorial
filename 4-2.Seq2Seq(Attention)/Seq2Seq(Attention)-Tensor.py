@@ -44,9 +44,9 @@ def make_batch(sentences):
 '''
 建模分以下步骤：
 1.设置输入输出的占位符
-2.设置网络结构：输入→encoder-decoder→输出层（softmax）
+2.设置网络结构：输入→encoder-attention-decoder→输出层（softmax）
 3.设置loss（交叉熵）和优化器（Adam）
-4.训练（10000轮）
+4.训练（2000轮）
 5.预测
 '''
 
@@ -55,16 +55,18 @@ enc_inputs = tf.placeholder(tf.float32, [None, None, n_class])  # [batch_size, n
 dec_inputs = tf.placeholder(tf.float32, [None, None, n_class])  # [batch_size, n_step, n_class]
 targets = tf.placeholder(tf.int64, [1, n_step])  # [batch_size, n_step], not one-hot
 
-
+## 2
 # Linear for attention
 attn = tf.Variable(tf.random_normal([n_hidden, n_hidden]))
 out = tf.Variable(tf.random_normal([n_hidden * 2, n_class]))
 
+# 获取attention-score = dec_output点乘score，score=enc_output × attn（网络参数）
 def get_att_score(dec_output, enc_output):  # enc_output [n_step, n_hidden]
     score = tf.squeeze(tf.matmul(enc_output, attn), 0)  # score : [n_hidden]
     dec_output = tf.squeeze(dec_output, [0, 1])  # dec_output : [n_hidden]
     return tf.tensordot(dec_output, score, 1)  # inner product make scalar value
 
+# 获取attention-weight = softmax（attention_scores）
 def get_att_weight(dec_output, enc_outputs):
     attn_scores = []  # list of attention scalar : [n_step]
     enc_outputs = tf.transpose(enc_outputs, [1, 0, 2])  # enc_outputs : [n_step, batch_size, n_hidden]
@@ -98,7 +100,7 @@ with tf.variable_scope('decode'):
 
         # matrix-matrix product of matrices [1, 1, n_step] x [1, n_step, n_hidden] = [1, 1, n_hidden]
         context = tf.matmul(attn_weights, enc_outputs)
-        dec_output = tf.squeeze(dec_output, 0)  # [1, n_step]
+        dec_output = tf.squeeze(dec_output, 0)  # [1, n_hidden]
         context = tf.squeeze(context, 1)  # [1, n_hidden]
 
         model.append(tf.matmul(tf.concat((dec_output, context), 1), out))  # [n_step, batch_size(=1), n_class]
@@ -106,9 +108,12 @@ with tf.variable_scope('decode'):
 trained_attn = tf.stack([Attention[0], Attention[1], Attention[2], Attention[3], Attention[4]], 0)  # to show attention matrix
 model = tf.transpose(model, [1, 0, 2])  # model : [n_step, n_class]
 prediction = tf.argmax(model, 2)
+
+## 3
 cost = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(logits=model, labels=targets))
 optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
 
+## 4
 # Training and Test
 with tf.Session() as sess:
     init = tf.global_variables_initializer()
@@ -121,10 +126,13 @@ with tf.Session() as sess:
         if (epoch + 1) % 400 == 0:
             print('Epoch:', '%04d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
 
+## 5
+    # 翻译预测
     predict_batch = [np.eye(n_class)[[word_dict[n] for n in 'P P P P P'.split()]]]
     result = sess.run(prediction, feed_dict={enc_inputs: input_batch, dec_inputs: predict_batch})
     print(sentences[0].split(), '->', [number_dict[n] for n in result[0]])
 
+    # 展示attention热力图
     # Show Attention
     fig = plt.figure(figsize=(5, 5))
     ax = fig.add_subplot(1, 1, 1)
