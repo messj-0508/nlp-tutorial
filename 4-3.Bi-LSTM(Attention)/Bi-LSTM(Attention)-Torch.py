@@ -10,14 +10,24 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
 
+# 设置网络参数属性的别名
 dtype = torch.FloatTensor
 
 # Bi-LSTM(Attention) Parameters
+'''
+设置超参数：
+1. embedding 维度
+2. 每个cell包含的神经单元数
+3. 类别数
+'''
 embedding_dim = 2
 n_hidden = 5 # number of hidden units in one cell
 num_classes = 2  # 0 or 1
 
 # 3 words sentences (=sequence_length is 3)
+'''
+制作数据和词典，该数据集是单词级的
+'''
 sentences = ["i love you", "he loves me", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
 labels = [1, 1, 1, 0, 0, 0]  # 1 is good, 0 is not good.
 
@@ -26,6 +36,9 @@ word_list = list(set(word_list))
 word_dict = {w: i for i, w in enumerate(word_list)}
 vocab_size = len(word_dict)
 
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 inputs = []
 for sen in sentences:
     inputs.append(np.asarray([word_dict[n] for n in sen.split()]))
@@ -37,6 +50,16 @@ for out in labels:
 input_batch = Variable(torch.LongTensor(inputs))
 target_batch = Variable(torch.LongTensor(targets))
 
+# Model
+'''
+建模：
+1.定BiLSTM_Attention类，包括网络参数，和前向传播（以及attn-net）
+2.设置loss（交叉熵）和优化器(Adam)
+3.训练（10000轮）
+4.测试
+'''
+
+## 1
 class BiLSTM_Attention(nn.Module):
     def __init__(self):
         super(BiLSTM_Attention, self).__init__()
@@ -69,9 +92,11 @@ class BiLSTM_Attention(nn.Module):
 
 model = BiLSTM_Attention()
 
+## 2
 criterion = nn.CrossEntropyLoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
+## 3
 # Training
 for epoch in range(5000):
     optimizer.zero_grad()
@@ -83,6 +108,7 @@ for epoch in range(5000):
     loss.backward()
     optimizer.step()
 
+## 4
 # Test
 test_text = 'sorry hate you'
 tests = [np.asarray([word_dict[n] for n in test_text.split()])]

@@ -6,14 +6,25 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import numpy as np
 
+# 重置默认图
 tf.reset_default_graph()
 
-# Bi-LSTM(Attention) Parameters
+# Parameter
+'''
+设置超参数：
+1. embedding 维度
+2. 每个cell包含的神经单元数
+3. 输入的长度
+4. 类别数
+'''
 embedding_dim = 2
 n_hidden = 5 # number of hidden units in one cell
 n_step = 3 # all sentence is consist of 3 words
 n_class = 2  # 0 or 1
 
+'''
+制作数据和词典，该数据集是单词级的
+'''
 # 3 words sentences (=sequence_length is 3)
 sentences = ["i love you", "he loves me", "she likes baseball", "i hate you", "sorry for that", "this is awful"]
 labels = [1, 1, 1, 0, 0, 0]  # 1 is good, 0 is not good.
@@ -23,6 +34,9 @@ word_list = list(set(word_list))
 word_dict = {w: i for i, w in enumerate(word_list)}
 vocab_size = len(word_dict)
 
+'''
+制作数据集：单词 → index编号 → onehot向量
+'''
 input_batch = []
 for sen in sentences:
     input_batch.append(np.asarray([word_dict[n] for n in sen.split()]))
@@ -32,6 +46,16 @@ for out in labels:
     target_batch.append(np.eye(n_class)[out]) # ONE-HOT : To using Tensor Softmax Loss function
 
 # LSTM Model
+'''
+建模分以下步骤：
+1.设置输入输出的占位符并初始化部分网络参数
+2.设置网络结构：输入→BiLSTM-attention→输出层（softmax）
+3.设置loss（交叉熵）和优化器（Adam）
+4.训练（2000轮）
+5.预测
+'''
+
+## 1
 X = tf.placeholder(tf.int32, [None, n_step])
 Y = tf.placeholder(tf.int32, [None, n_class])
 out = tf.Variable(tf.random_normal([n_hidden * 2, n_class]))
@@ -39,6 +63,7 @@ out = tf.Variable(tf.random_normal([n_hidden * 2, n_class]))
 embedding = tf.Variable(tf.random_uniform([vocab_size, embedding_dim]))
 input = tf.nn.embedding_lookup(embedding, X) # [batch_size, len_seq, embedding_dim]
 
+## 2
 lstm_fw_cell = tf.nn.rnn_cell.LSTMCell(n_hidden)
 lstm_bw_cell = tf.nn.rnn_cell.LSTMCell(n_hidden)
 
@@ -57,9 +82,11 @@ context = tf.squeeze(context, 2) # [batch_size, n_hidden * num_directions(=2)]
 
 model = tf.matmul(context, out)
 
+## 3
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits=model, labels=Y))
 optimizer = tf.train.AdamOptimizer(0.001).minimize(cost)
 
+## 4
 # Model-Predict
 hypothesis = tf.nn.softmax(model)
 predictions = tf.argmax(hypothesis, 1)
@@ -73,6 +100,7 @@ with tf.Session() as sess:
         if (epoch + 1)%1000 == 0:
             print('Epoch:', '%06d' % (epoch + 1), 'cost =', '{:.6f}'.format(loss))
 
+    ## 5
     # Test
     test_text = 'sorry hate you'
     tests = [np.asarray([word_dict[n] for n in test_text.split()])]
